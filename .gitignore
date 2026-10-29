@@ -1,0 +1,96 @@
+# ===== 环境变量与密钥 =====
+# 真实凭据只存在于本地，绝不入库；团队共享模板（.env.example 等）需要入库
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+!.env.dist
+*.pem
+*.key
+*.p12
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+sdist/
+*.egg-info/
+*.egg
+.eggs/
+develop-eggs/
+
+# 虚拟环境
+# 注意：backend/.python-version 由 uv 用于锁定解释器版本，应纳入版本管理，故不忽略
+.venv/
+venv/
+ENV/
+env/
+
+# 测试、类型检查与覆盖率
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+coverage/
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.hypothesis/
+
+# ===== Node / 前端 =====
+node_modules/
+.pnpm-store/
+dist/
+dist-ssr/
+*.local
+.vite/
+.eslintcache
+# tsc -b（npm run build）生成的增量构建信息
+*.tsbuildinfo
+
+# 包管理器日志
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ===== 编辑器 / 系统 =====
+.DS_Store
+._*
+Thumbs.db
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+
+# ===== 运行时产物 =====
+# 日志与临时文件
+logs/
+*.log
+tmp/
+temp/
+*.pid
+
+# 本地文件存储：只忽略仓库根目录下的 storage/；
+# backend/app/storage/ 是 COS 客户端源码，必须入库，不能用 storage/ 通配
+/storage/
+uploads/
+
+# ===== Docker / 本地数据库数据 =====
+pgdata/
+postgres-data/
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal

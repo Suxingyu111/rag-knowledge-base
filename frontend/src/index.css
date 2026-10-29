@@ -1,0 +1,47 @@
+:root {
+  font-family:
+    'Avenir Next', 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC',
+    'Helvetica Neue', sans-serif;
+  color: #1a261f;
+  background: #f3efe5;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 320px;
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #f3efe5;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  color: #fbf8f0;
+  background: #b6441d;
+}

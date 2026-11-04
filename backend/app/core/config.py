@@ -14,7 +14,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # backend/app/core/config.py -> parents[3] 即项目根目录
@@ -54,6 +54,17 @@ class Settings(BaseSettings):
     cos_bucket: str = ""
 
     cors_origins: str = "http://localhost:5173"
+
+    embedding_api_key: str = ""
+    enbeding_base_url: str = "https://ws-j9yvjavs76o44pca.cn-beijing.maas.aliyuncs.com/compatible-mode/v1"
+    embedding_model: str = "qwen3.7-text-embedding"
+    embedding_dim: int = 1024
+    embedding_batch_size: int = 10
+
+    upload_max_size_mb: int = 50
+    document_parse_timeout_seconds: float = Field(default=180, gt=0)
+    chunk_size: int = 600
+    chunk_overlap: int = 60
 
     @model_validator(mode="after")
     def _assemble_database_url(self) -> "Settings":

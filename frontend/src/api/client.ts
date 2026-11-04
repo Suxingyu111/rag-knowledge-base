@@ -47,10 +47,15 @@ import {
   healthCheck,
   healthCheckCos,
   healthCheckDatabase,
+  uploadDocument,
+  retryDocument,
+  deleteDocument,
+  getDocumentContent,
 } from '../client/sdk.gen'
 import type {
   ComponentHealthResponse,
   HealthCheckResponse,
+  DocumentResponse,
 } from '../client/types.gen'
 import {
   ApiError,
@@ -283,6 +288,36 @@ export const api = {
   patch,
   remove,
   health: healthApi,
+  documents: {
+    async readText(documentId: string, options: ApiCallOptions = {}): Promise<string> {
+      const { data } = await getDocumentContent({
+        ...toSdkOptions(options),
+        path: { document_id: documentId },
+        parseAs: 'text',
+      })
+      return data
+    },
+    async retry(documentId: string): Promise<DocumentResponse> {
+      const { data } = await retryDocument({
+        ...toSdkOptions(),
+        path: { document_id: documentId },
+      })
+      return data
+    },
+    async remove(documentId: string): Promise<void> {
+      await deleteDocument({
+        ...toSdkOptions(),
+        path: { document_id: documentId },
+      })
+    },
+    async upload(file: File): Promise<DocumentResponse> {
+      const { data } = await uploadDocument({
+        ...toSdkOptions({ timeoutMs: 0 }),
+        body: { file },
+      })
+      return data
+    },
+  },
 } as const
 
 // 统一从本模块导出错误类型与响应类型，业务代码无需再深入 `src/client`。

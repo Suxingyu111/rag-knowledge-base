@@ -23,7 +23,7 @@ import './BasicLayout.css'
 
 const { Header, Sider, Content } = Layout
 
-type NavKey = 'chat' | 'knowledge-base' | 'health'
+type NavKey = 'chat' | 'knowledge-base' | 'documents' | 'health'
 
 interface NavItem {
   key: NavKey
@@ -67,6 +67,11 @@ const NAV_ITEMS: readonly NavItem[] = [
     label: '知识库',
   },
   {
+    key: 'documents',
+    path: ROUTE_PATHS.documents,
+    label: '文档管理',
+  },
+  {
     key: 'health',
     path: ROUTE_PATHS.health,
     label: '系统状态',
@@ -76,6 +81,7 @@ const NAV_ITEMS: readonly NavItem[] = [
 const NAV_ICONS: Record<NavKey, ReactNode> = {
   chat: <MessageOutlined />,
   'knowledge-base': <DatabaseOutlined />,
+  documents: <FileTextOutlined />,
   health: <ApiOutlined />,
 }
 
@@ -99,17 +105,7 @@ const menuItems: MenuProps['items'] = [
     key: 'knowledge-assets',
     label: '知识资产',
     children: [
-      {
-        key: 'documents',
-        icon: <FileTextOutlined />,
-        disabled: true,
-        label: (
-          <span className="kb-menu-label">
-            <span>文档管理</span>
-            <span className="kb-soon">即将开放</span>
-          </span>
-        ),
-      },
+      ...NAV_ITEMS.filter((item) => item.key === 'documents').map(toMenuItem),
       {
         key: 'knowledge-documents',
         icon: <ReadOutlined />,
@@ -137,7 +133,7 @@ const TODAY_LABEL = new Intl.DateTimeFormat('zh-CN', {
   weekday: 'long',
 }).format(new Date())
 
-/** 按当前地址匹配导航项，用于菜单高亮与面包屑标题。 */
+/** 按路径边界匹配导航项；/documents 及其详情页共用菜单高亮与面包屑标题。 */
 function resolveNavItem(pathname: string): NavItem | undefined {
   return NAV_ITEMS.find(
     ({ path }) => pathname === path || pathname.startsWith(`${path}/`),

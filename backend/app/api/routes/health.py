@@ -13,9 +13,9 @@
 ==========================  ============================  ==================
 operation_id                生成的函数名                   检查对象
 ==========================  ============================  ==================
-``health_check``            ``healthCheck``               后端服务自身
-``health_check_database``   ``healthCheckDatabase``       数据库
-``health_check_cos``        ``healthCheckCos``            COS
+``healthCheck``            ``healthCheck``               后端服务自身
+``healthCheckDatabase``   ``healthCheckDatabase``       数据库
+``healthCheckCos``        ``healthCheckCos``            COS
 ==========================  ============================  ==================
 
 依赖组件不可用时统一返回 ``503 Service Unavailable``，响应体沿用项目统一的
@@ -39,9 +39,7 @@ from app.storage.cos_client import COSClient, get_cos_client
 
 logger = get_logger(__name__)
 
-# 各接口路径已经统一以 /api 开头；在 app/main.py 中直接
-# ``app.include_router(health.router)`` 即可，不要再次叠加 /api 前缀。
-router = APIRouter(prefix="/api", tags=["health"])
+router = APIRouter(prefix="/health", tags=["health"])
 
 
 class HealthCheckResponse(BaseModel):
@@ -87,9 +85,9 @@ def _elapsed_ms(started: float) -> float:
 
 
 @router.get(
-    "/health",
+    "",
     response_model=HealthCheckResponse,
-    operation_id="health_check",
+    operation_id="healthCheck",
     summary="后端服务健康检查",
     description=(
         "确认 FastAPI 进程已启动并能正常处理请求。"
@@ -107,9 +105,9 @@ async def health_check() -> HealthCheckResponse:
 
 
 @router.get(
-    "/health/database",
+    "/database",
     response_model=ComponentHealthResponse,
-    operation_id="health_check_database",
+    operation_id="healthCheckDatabase",
     summary="数据库连通性检查",
     description=(
         "对 PostgreSQL 执行 ``SELECT 1``，验证连接串、网络与数据库实例是否可用。"
@@ -155,9 +153,9 @@ async def health_check_database(session: DbSession) -> ComponentHealthResponse:
 
 
 @router.get(
-    "/health/cos",
+    "/cos",
     response_model=ComponentHealthResponse,
-    operation_id="health_check_cos",
+    operation_id="healthCheckCos",
     summary="COS 连通性检查",
     description=(
         "调用 COS ``ListObjects``（最多读取 1 个对象）验证配置、鉴权、"

@@ -7,6 +7,12 @@
 export const ROUTE_PATHS = {
   /** 应用根路径，访问时重定向到知识问答。 */
   root: '/',
+  /** 文档上传与处理状态管理。 */
+  documents: '/documents',
+  /** 文档详情路由模式，documentId 由 URL 参数提供。 */
+  documentDetail: '/documents/:documentId',
+  /** 独立原文预览页，用于新窗口打开。 */
+  documentPreview: '/documents/:documentId/preview',
   /** 知识问答。 */
   chat: '/chat',
   /** 知识库列表与管理。 */

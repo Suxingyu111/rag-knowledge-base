@@ -3,6 +3,9 @@ import { Navigate, createBrowserRouter } from 'react-router-dom'
 
 import BasicLayout from '@/layouts/BasicLayout'
 import ChatPage from '@/pages/ChatPage'
+import DocumentsPage from '@/pages/DocumentsPage'
+import DocumentDetailPage from '@/pages/DocumentDetailPage'
+import DocumentPreviewPage from '@/pages/DocumentPreviewPage'
 import HomePage from '@/pages/HomePages'
 import KnowledgeBasePage from '@/pages/KnowledgeBasePage'
 import NotFoundPage from '@/pages/NotFoundPage'
@@ -26,10 +29,23 @@ import { ROUTE_PATHS } from '@/routes/paths'
  */
 export const router = createBrowserRouter([
   {
+    path: ROUTE_PATHS.documentPreview,
+    element: <DocumentPreviewPage />,
+    errorElement: <RouteErrorPage />,
+  },
+  {
     path: ROUTE_PATHS.root,
     element: <BasicLayout />,
     errorElement: <RouteErrorPage />,
     children: [
+      {
+        path: ROUTE_PATHS.documents,
+        element: <DocumentsPage />,
+      },
+      {
+        path: ROUTE_PATHS.documentDetail,
+        element: <DocumentDetailPage />,
+      },
       {
         index: true,
         element: <Navigate replace to={ROUTE_PATHS.chat} />,

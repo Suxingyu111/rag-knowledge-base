@@ -139,6 +139,10 @@ class COSClient:
         return self._bucket
 
     @property
+    def region(self) -> str:
+        return settings.cos_region
+
+    @property
     def sync_client(self) -> CosS3Client:
         """底层同步客户端。
 
@@ -190,7 +194,7 @@ class COSClient:
     # ------------------------------------------------------------------
     # 上传
     # ------------------------------------------------------------------
-    async def upload_bytes(
+    async def put_object(
         self,
         key: str,
         data: bytes | bytearray | memoryview | BinaryIO,
@@ -280,7 +284,7 @@ class COSClient:
     # ------------------------------------------------------------------
     # 下载
     # ------------------------------------------------------------------
-    async def download_bytes(self, key: str) -> bytes:
+    async def get_object(self, key: str) -> bytes:
         """下载对象内容到内存。大文件建议使用 :meth:`download_file`。"""
         object_key = self._normalize_key(key)
         response = await self._run(

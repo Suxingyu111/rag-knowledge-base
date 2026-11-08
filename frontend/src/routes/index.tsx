@@ -51,7 +51,7 @@ export const router = createBrowserRouter([
         element: <Navigate replace to={ROUTE_PATHS.chat} />,
       },
       {
-        path: 'chat',
+        path: ROUTE_PATHS.chat,
         element: <ChatPage />,
       },
       {

@@ -9,7 +9,8 @@ import { api } from '@/api/client'
 import type { ChunkDetailResponse, ChunkListItemResponse, ChunkListResponse, ChunkStatsResponse, DocumentResponse, DocumentStatus } from '@/client/types.gen'
 import StageHead from '@/components/StageHead'
 import DocumentPreview from '@/components/DocumentPreview'
-import { canPreviewInline, getDocumentDownloadUrl } from '@/utils/documentFile'
+import MarkdownComponents from '@/components/MarkdownComponents'
+import { canPreviewInline, getDocumentDownloadUrl, isMarkdownDocument } from '@/utils/documentFile'
 import { ROUTE_PATHS } from '@/routes/paths'
 import { getDocumentStatusInfo, isTerminalStatus } from '@/utils/documentStatus'
 
@@ -100,11 +101,12 @@ function DocumentDetailContent({ documentId }: { documentId: string }) {
   const previewSupported = canPreviewInline(document?.mime_type)
   const chunkColumns: ColumnsType<ChunkListItemResponse> = [
     { title: '分块', dataIndex: 'chunk_index', width: 90, render: (index: number) => `#${index + 1}` },
-    { title: '页码', dataIndex: 'page_no', width: 80, render: (page: number | null) => page ?? '—' },
-    { title: '章节', dataIndex: 'section_path', width: 180, render: (section: string | null) => section || '—' },
-    { title: '正文摘要', dataIndex: 'summary', render: (summary: string, chunk) => (
-      <Button type="link" style={{ height: 'auto', whiteSpace: 'normal', textAlign: 'left' }}
-        onClick={() => setSelectedChunkId(chunk.id)}>{summary || '空内容，点击查看详情'}</Button>
+    { title: '正文摘要', dataIndex: 'summary', render: (summary: string) => (
+      summary ? (
+        <div style={{ overflowWrap: 'anywhere', overflowX: 'auto' }}>
+          <MarkdownComponents>{summary}</MarkdownComponents>
+        </div>
+      ) : '空内容'
     ) },
     { title: '操作', key: 'detail', width: 100, render: (_, chunk) => (
       <Button type="link" onClick={() => setSelectedChunkId(chunk.id)}>查看详情</Button>
@@ -217,7 +219,13 @@ function DocumentDetailContent({ documentId }: { documentId: string }) {
                 { key: 'created', label: '创建时间', children: new Date(chunkDetail.created_at).toLocaleString('zh-CN') },
               ]} />
               <Typography.Title level={5}>完整正文</Typography.Title>
-              <pre style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', maxHeight: 420, overflow: 'auto' }}>{chunkDetail.content}</pre>
+              {document && isMarkdownDocument(document) ? (
+                <div style={{ overflowWrap: 'anywhere', maxHeight: 420, overflow: 'auto' }}>
+                  <MarkdownComponents>{chunkDetail.content}</MarkdownComponents>
+                </div>
+              ) : (
+                <pre style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', maxHeight: 420, overflow: 'auto' }}>{chunkDetail.content}</pre>
+              )}
               <Typography.Title level={5}>解析元数据</Typography.Title>
               <pre style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{JSON.stringify(chunkDetail.extra_metadata ?? {}, null, 2)}</pre>
             </Flex>

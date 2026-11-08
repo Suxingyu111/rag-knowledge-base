@@ -1,9 +1,17 @@
-import { ArrowUpOutlined } from '@ant-design/icons'
-import { App as AntApp, Button, Input } from 'antd'
-import { useOutletContext } from 'react-router-dom'
+import { ArrowUpOutlined, DesktopOutlined, UserOutlined } from '@ant-design/icons'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Alert, Button, Input, Select, Spin } from 'antd'
+import { useEffect, useRef, type ReactNode } from 'react'
+import { useOutletContext, useSearchParams } from 'react-router-dom'
+
+import { api } from '@/api/client'
+import type { ConversationDetail, MessageRead } from '@/client/types.gen'
+import CitationList from '@/components/CitationList'
+import { useChatStore, useConversationIndex } from '@/stores/chatStore'
 
 import StageHead from '@/components/StageHead'
 import type { WorkspaceOutletContext } from '@/layouts/BasicLayout'
+import './ChatPage.css'
 
 const STAGE_COPY = {
   eyebrow: '01 / KNOWLEDGE CHAT',
@@ -24,45 +32,144 @@ const SUGGESTED_QUESTIONS = [
   '对比两个版本的差异',
 ]
 
-/**
- * 知识问答页。
- *
- * 输入框草稿由 `BasicLayout` 通过 `<Outlet context>` 提供，因此从知识库
- * 切回问答时不会丢失；点击顶栏「新建对话」会清空草稿并回到本页。
- */
+function MessageBubble({ role, children }: { role: MessageRead['role']; children: ReactNode }) {
+  const label = role === 'user' ? '你' : role === 'assistant' ? '知源' : '系统'
+
+  return (
+    <article className={`kb-chat-message kb-chat-message--${role}`} aria-label={label}>
+      <span className="kb-chat-avatar" aria-hidden="true">
+        {role === 'user' ? <UserOutlined /> : <DesktopOutlined />}
+      </span>
+      <div className="kb-chat-bubble">
+        <strong className="kb-chat-sender">{label}</strong>
+        {children}
+      </div>
+    </article>
+  )
+}
+
+const historyKey = (id: string) => ['chat', 'history', id] as const
+
 export function ChatPage() {
-  const { message } = AntApp.useApp()
   const { question, setQuestion } = useOutletContext<WorkspaceOutletContext>()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const conversationId = searchParams.get('conversation') ?? ''
+  const conversations = useConversationIndex((state) => state.conversations)
+  const turns = useChatStore((state) => state.turns[conversationId])
+  const pending = turns?.some((turn) => turn.pending) ?? false
+  const creating = useChatStore((state) => state.creating)
+  const messages = useRef<HTMLDivElement>(null)
+  const queryClient = useQueryClient()
+  const history = useQuery({
+    queryKey: historyKey(conversationId),
+    queryFn: ({ signal }) => api.get<ConversationDetail>(
+      `/conversations/${encodeURIComponent(conversationId)}`, { signal, silent: true },
+    ),
+    enabled: Boolean(conversationId),
+    refetchOnMount: 'always',
+  })
+  const saved = history.data?.messages ?? []
+  const savedIds = new Set(saved.map(({ id }) => id))
 
-  const handleAsk = () => {
-    if (!question.trim()) {
-      return
+  useEffect(() => {
+    if (history.data) useConversationIndex.getState().remember(history.data.conversation)
+  }, [history.data])
+
+  useEffect(() => {
+    const panel = messages.current
+    if (panel) panel.scrollTop = panel.scrollHeight
+  }, [conversationId, history.data, turns])
+
+  const handleAsk = async () => {
+    const text = question.trim()
+    if (!text || creating || pending || (conversationId && !history.data)) return
+
+    let id = conversationId
+    if (!id) {
+      try {
+        const conversation = await useChatStore.getState().createConversation()
+        if (!conversation) return
+        id = conversation.id
+        queryClient.setQueryData<ConversationDetail>(historyKey(id), { conversation, messages: [] })
+        setSearchParams({ conversation: id })
+      } catch {
+        return
+      }
     }
-
-    message.info('问答服务接入后，这里会展示带引用的回答。')
+    setQuestion('')
+    await useChatStore.getState().send(id, text)
+    await queryClient.invalidateQueries({ queryKey: historyKey(id) })
   }
 
   return (
     <section className="kb-stage" aria-labelledby="kb-page-title">
       <StageHead {...STAGE_COPY} />
 
+      <Select
+        aria-label="历史会话"
+        placeholder="打开历史会话"
+        value={conversationId || undefined}
+        disabled={creating}
+        style={{ width: '100%', maxWidth: 360, marginBlockEnd: 16 }}
+        options={conversations.map(({ id, title }) => ({ value: id, label: title }))}
+        onChange={(id: string) => {
+          setQuestion('')
+          setSearchParams({ conversation: id })
+        }}
+      />
+
+      {conversationId && (
+        <div ref={messages} aria-label="会话消息" className="kb-chat-transcript">
+          {history.isPending && <Spin />}
+          {history.isError && (
+            <Alert type="error" title="会话历史加载失败" description={history.error.message}
+              action={<Button onClick={() => { void history.refetch() }}>重试</Button>} />
+          )}
+          {saved.map((item) => (
+            <MessageBubble key={item.id} role={item.role}>
+              {item.role === 'assistant'
+                ? <CitationList answer={item.content} citations={item.citations ?? []} />
+                : <div style={{ whiteSpace: 'pre-wrap' }}>{item.content}</div>}
+            </MessageBubble>
+          ))}
+          {turns?.map((turn, index) => (
+            <div key={index}>
+              {(!turn.userId || !savedIds.has(turn.userId)) && (
+                <MessageBubble role="user">
+                  <div style={{ whiteSpace: 'pre-wrap' }}>{turn.question}</div>
+                </MessageBubble>
+              )}
+              {(!turn.answerId || !savedIds.has(turn.answerId)) && (turn.answer || turn.pending) && (
+                <MessageBubble role="assistant">
+                  {turn.answer ? <CitationList answer={turn.answer} citations={turn.citations ?? []} /> : <p role="status">正在检索并生成回答…</p>}
+                </MessageBubble>
+              )}
+              {turn.error && (
+                <MessageBubble role="assistant">
+                  <Alert type="error" title="回答中断" description={turn.error} />
+                </MessageBubble>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="kb-composer-shell">
         <div className="kb-composer-head">
           <span className="kb-composer-label">向知识库提问</span>
-          <span className="kb-offline-state">
-            <span aria-hidden="true" className="kb-offline-dot" />
-            知识库未连接
-          </span>
+          {pending && <span role="status">正在回答</span>}
         </div>
         <Input.TextArea
           aria-label="向知识库提问"
           autoSize={{ minRows: 3, maxRows: 6 }}
           className="kb-question-input"
+          disabled={creating}
+          maxLength={2000}
           onChange={(event) => setQuestion(event.target.value)}
           onPressEnter={(event) => {
-            if (!event.shiftKey) {
+            if (!event.shiftKey && !event.nativeEvent.isComposing) {
               event.preventDefault()
-              handleAsk()
+              void handleAsk()
             }
           }}
           placeholder="例如：这份合同的付款周期是多久？"
@@ -73,7 +180,8 @@ export function ChatPage() {
           <span>Enter 发送 · Shift + Enter 换行</span>
           <Button
             className="kb-send-button"
-            disabled={!question.trim()}
+            disabled={!question.trim() || pending || Boolean(conversationId && !history.data)}
+            loading={creating}
             onClick={handleAsk}
             type="primary"
           >

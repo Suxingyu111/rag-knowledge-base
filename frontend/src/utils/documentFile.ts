@@ -37,3 +37,10 @@ export function canPreviewInline(mimeType: string | null | undefined): boolean {
   const normalized = mimeType?.split(';', 1)[0]?.trim().toLowerCase()
   return normalized !== undefined && INLINE_PREVIEW_MIME_TYPES.has(normalized)
 }
+
+/** 兼容上传时被标记为纯文本的 Markdown 文件。 */
+export function isMarkdownDocument(document: { mime_type: string; name: string }): boolean {
+  const mime = document.mime_type.split(';', 1)[0].trim().toLowerCase()
+  return mime === 'text/markdown' || mime === 'text/x-markdown'
+    || (mime === 'text/plain' && /\.(?:md|markdown)$/i.test(document.name))
+}

@@ -6,8 +6,9 @@ from uuid import UUID
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from app.db.models import DocumentChunk
+from app.db.models import DocumentChunk, Document
 
 
 class ChunkStats(TypedDict):
@@ -146,3 +147,21 @@ class ChunkRepository:
             delete(DocumentChunk).where(DocumentChunk.document_id == document_id)
         )
         return result.rowcount
+
+    async def vector_search(
+            self,
+            query_embedding: list[float],
+            top_k: int,
+    ) -> list[tuple[DocumentChunk, float]]:
+        distance = DocumentChunk.embedding.cosine_distance(query_embedding)
+        stmt = (
+            select(DocumentChunk, distance.label("distance"))
+            .join(Document, Document.id == DocumentChunk.document_id)
+            .where(Document.status == "ready")
+            .order_by(distance.asc())
+            .limit(top_k)
+            .options(selectinload(DocumentChunk.document))
+        )
+        result = await self._session.execute(stmt)
+        rows = result.all()
+        return [(chunk, float(dist)) for chunk, dist in rows]

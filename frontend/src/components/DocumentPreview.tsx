@@ -1,15 +1,15 @@
 import { useQuery } from '@tanstack/react-query'
 import { Alert, Button, Empty, Spin } from 'antd'
-import ReactMarkdown from 'react-markdown'
+import MarkdownComponents from '@/components/MarkdownComponents'
 
 import { api } from '@/api/client'
 import type { DocumentResponse } from '@/client/types.gen'
-import { getDocumentDownloadUrl, getDocumentPreviewUrl } from '@/utils/documentFile'
+import { getDocumentDownloadUrl, getDocumentPreviewUrl, isMarkdownDocument } from '@/utils/documentFile'
 
 /** 文本、PDF 与 HTML 均通过后端读取，HTML 使用不具备同源权限的沙箱。 */
 export default function DocumentPreview({ document }: { document: DocumentResponse }) {
   const mime = document.mime_type.split(';', 1)[0].trim().toLowerCase()
-  const markdown = mime === 'text/markdown' || mime === 'text/x-markdown'
+  const markdown = isMarkdownDocument(document)
   const text = useQuery({
     queryKey: ['document-preview', document.id],
     queryFn: ({ signal }) => api.documents.readText(document.id, { signal, silent: true }),
@@ -26,7 +26,7 @@ export default function DocumentPreview({ document }: { document: DocumentRespon
             action={<Button onClick={() => { void text.refetch() }}>重试</Button>} />
         ) : text.isSuccess ? (
           <div style={{ maxHeight: 600, overflow: 'auto', overflowWrap: 'anywhere' }}>
-            {markdown ? <ReactMarkdown skipHtml>{text.data}</ReactMarkdown>
+            {markdown ? <MarkdownComponents>{text.data}</MarkdownComponents>
               : <pre style={{ whiteSpace: 'pre-wrap' }}>{text.data}</pre>}
           </div>
         ) : <p>正在读取原文…</p>}

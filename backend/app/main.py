@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.error_handlers import register_exception_handlers
-from app.api.routes import documents, health
+from app.api.routes import documents, health, chat
 from app.core.config import settings
 from app.core.logging import configure_logging, get_logger
 from app.db.session import engine
@@ -62,6 +62,7 @@ def create_app() -> FastAPI:
     # 全局前缀只在应用入口添加，路由模块仅定义资源前缀。
     app.include_router(health.router, prefix=API_PREFIX)
     app.include_router(documents.router, prefix=API_PREFIX)
+    app.include_router(chat.router, prefix=API_PREFIX)
     return app
 
 

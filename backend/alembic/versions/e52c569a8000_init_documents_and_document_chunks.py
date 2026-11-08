@@ -45,7 +45,7 @@ def upgrade() -> None:
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('document_id', sa.UUID(), nullable=False),
     sa.Column('content', sa.Text(), nullable=False),
-    sa.Column('embeding', pgvector.sqlalchemy.vector.VECTOR(dim=1024), nullable=False),
+    sa.Column('embedding', pgvector.sqlalchemy.vector.VECTOR(dim=1024), nullable=False),
     sa.Column('page_no', sa.Integer(), nullable=True),
     sa.Column('section_path', sa.String(length=1024), nullable=True),
     sa.Column('chunk_index', sa.Integer(), nullable=False),

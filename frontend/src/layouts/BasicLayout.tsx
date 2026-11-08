@@ -16,6 +16,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 
+import { useChatStore } from '@/stores/chatStore'
 import { ROUTE_PATHS } from '@/routes/paths'
 import type { RoutePath } from '@/routes/paths'
 import { setErrorNotifier } from '@/utils/errors'
@@ -237,6 +238,7 @@ export default function BasicLayout() {
   )
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [question, setQuestion] = useState('')
+  const creatingChat = useChatStore((state) => state.creating)
   const { message } = AntApp.useApp()
   const { pathname } = useLocation()
   const navigate = useNavigate()
@@ -277,12 +279,16 @@ export default function BasicLayout() {
     }
   }
 
-  const handleNewChat = () => {
-    setQuestion('')
-    setMobileNavOpen(false)
-    navigate(ROUTE_PATHS.chat, {
-      replace: pathname === ROUTE_PATHS.chat,
-    })
+  const handleNewChat = async () => {
+    try {
+      const conversation = await useChatStore.getState().createConversation()
+      if (!conversation) return
+      setQuestion('')
+      setMobileNavOpen(false)
+      navigate(`${ROUTE_PATHS.chat}?conversation=${encodeURIComponent(conversation.id)}`)
+    } catch {
+      // 统一请求层负责显示创建失败提示。
+    }
   }
 
   return (
@@ -360,6 +366,7 @@ export default function BasicLayout() {
             <Button
               className="kb-new-chat"
               icon={<PlusOutlined />}
+              loading={creatingChat}
               onClick={handleNewChat}
               type="primary"
             >

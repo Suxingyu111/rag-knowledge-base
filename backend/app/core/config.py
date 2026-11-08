@@ -66,6 +66,21 @@ class Settings(BaseSettings):
     chunk_size: int = 600
     chunk_overlap: int = 60
 
+    # === Chat 模型(DashScope OpenAI 兼容协议) ===
+    # 默认与 embedding 同 base_url
+    chat_api_key: str = ""
+    chat_base_url: str = "https://ws-j9yvjavs76o44pca.cn-beijing.maas.aliyuncs.com/compatible-mode/v1"
+    chat_model: str = "qwen3.7-flash"
+
+    # === 检索与问答 ===
+    # === 检索 Top-K: 交给LLM的候选 chunk 数量
+    retrieval_top_k: int = 5
+    # 拒答阈值: cosine similarity(= 1 - cosine_distance)的下限
+    # Top-K 中最高分仍低于此值，直接拒答，不调LLM
+    retrieval_min_score: float = 0.6
+    # 多轮窗口: load_context 节点取最近多少轮塞进 prompt
+    chat_history_window: int = 5
+
     @model_validator(mode="after")
     def _assemble_database_url(self) -> "Settings":
         """未配置 DATABASE_URL 时，根据 POSTGRES_* 组装异步连接串。"""

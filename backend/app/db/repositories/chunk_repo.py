@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from typing import TypedDict
 from uuid import UUID
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, literal_column, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -165,3 +165,32 @@ class ChunkRepository:
         result = await self._session.execute(stmt)
         rows = result.all()
         return [(chunk, float(dist)) for chunk, dist in rows]
+
+    async def keyword_search(
+            self,
+            query: str,
+            top_k: int,
+    ) -> list[tuple[DocumentChunk, float]]:
+        """中文全文检索 Top-K:plainto_tsquery + ts_rank。
+
+        - 用 chinese_zh 文本搜索配置(zhparser 切词，迁移里建好)
+        - plainto_tsquery: 自动把多个词AND 起来，对用户输入容错最好
+        (“差旅 报销"和"差旅报销"都会切成同一组 token)
+        仅命中 status='ready'文档，避免拿到尚未完成入库的脏 chunk
+        返回(chunk，ts_rank)列表，ts_rank 越大越相关
+        """
+        tsquery = func.plainto_tsquery(literal_column("'chinese_zh'::regconfig"), query)
+        rank_expr = func.ts_rank(DocumentChunk.content_tsv, tsquery)
+        stmt = (
+            select(DocumentChunk, rank_expr.label("rank"))
+            .join(Document, Document.id == DocumentChunk.document_id)
+            .where(
+                Document.status == "ready",
+                DocumentChunk.content_tsv.op("@@")(tsquery),
+            )
+            .order_by(rank_expr.desc())
+            .limit(top_k)
+            .options(selectinload(DocumentChunk.document))
+        )
+        rows = (await self._session.execute(stmt)).all()
+        return [(chunk, float(rank)) for chunk, rank in rows]

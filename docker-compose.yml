@@ -1,6 +1,12 @@
 services:
   postgres:
-    image: pgvector/pgvector:pg16
+    # image: pgvector/pgvector:pg16
+    # 自定义镜像：在 pgvector/pgvector:pg16 之上叠加 zhparser
+    # 一次构建同时支持 pgvector + 中文全文检索。
+    build:
+      context: .
+      dockerfile: postgres.Dockerfile
+    image: rag-kb-postgres:pg16
     container_name: rag-kb-postgres
     restart: unless-stopped
     environment:

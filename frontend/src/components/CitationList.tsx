@@ -1,6 +1,7 @@
 import { useId, useState } from 'react'
 import { CaretRightOutlined } from '@ant-design/icons'
-import { Button, theme } from 'antd'
+import { Button, Tag, theme } from 'antd'
+import type { CitationRead } from '@/client/types.gen'
 import type { Element, Root } from 'hast'
 
 import MarkdownComponents from './MarkdownComponents'
@@ -11,6 +12,7 @@ export interface CitationItem {
   page_no?: number | null
   section_path?: string | null
   quote: string
+  retrieval_meta?: CitationRead['retrieval_meta']
 }
 
 export interface CitationListProps {
@@ -82,6 +84,10 @@ export default function CitationList({ answer, citations }: CitationListProps) {
           {citations.map((citation) => {
             const id = `${panelId}-${citation.ordinal}`
             const expanded = activeOrdinal === citation.ordinal
+            const sources = citation.retrieval_meta?.sources ?? []
+            const vector = sources.includes('vector')
+            const keyword = sources.includes('keyword')
+            const retrievalLabel = vector && keyword ? '混合' : vector ? '向量' : keyword ? '关键字' : ''
             const location = [
               citation.page_no != null ? `第 ${citation.page_no} 页` : '',
               citation.section_path,
@@ -99,6 +105,7 @@ export default function CitationList({ answer, citations }: CitationListProps) {
                 >
                   [{citation.ordinal}] {citation.document_name}
                 </Button>
+                {retrievalLabel && <Tag>{retrievalLabel}</Tag>}
                 <section
                   aria-label={`引用 ${citation.ordinal} 原文`}
                   hidden={!expanded}

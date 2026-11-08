@@ -27,6 +27,7 @@ from uuid import UUID, uuid4
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     BigInteger,
+    Computed,
     DateTime,
     ForeignKey,
     Integer,
@@ -34,7 +35,7 @@ from sqlalchemy import (
     Text,
     func,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR, UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.config import settings
 from app.db.base import Base
@@ -90,8 +91,10 @@ class DocumentChunk(Base):
     page_no: Mapped[int | None] = mapped_column(Integer, nullable=True)
     section_path: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
-    extra_metadata: Mapped[dict] = mapped_column(
-        "metadata", JSONB, nullable=False, default=dict
+    extra_metadata: Mapped[dict] = mapped_column("metadata", JSONB, nullable=False, default=dict)
+    content_tsv: Mapped[str | None] = mapped_column(
+        TSVECTOR,
+        Computed("to_tsvector('chinese_zh', content)", persisted=True),
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -204,5 +207,10 @@ class AnswerCitation(Base):
     quote: Mapped[str] = mapped_column(Text, nullable=False)
 
     message: Mapped[Message] = relationship(back_populates="citations")
+
+    #混合检索调试元数据:sources/ vector_rank / keyword_rank / *_score / rrf_score
+    #用JSONB 而非拆列，后续 reranker章节会继续往里加字段，schema 不稳定时更友好
+    retrieval_meta: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+
 
     

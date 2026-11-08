@@ -23,7 +23,7 @@ logger = get_logger(__name__)
 
 def _serialize_citation(chunk: RetrievedChunk, ordinal: int) -> dict:
     """
-    citations SSE 事件载荷格式（与前端约定一致）
+    citations SSE 事件载荷格式，与 CitationRead 对齐
 
     ordinal 必须显式传入：与 prompt 中给 LLM 看到的「片段N」编号一致，
     前端按这个数字渲染[N]角标，避免后续顺序丢失导致引用串号。
@@ -37,6 +37,7 @@ def _serialize_citation(chunk: RetrievedChunk, ordinal: int) -> dict:
         "section_path": chunk.section_path,
         "score": round(chunk.score, 4),
         "quote": chunk.content,
+        "retrieval_meta": _build_retrieval_meta(chunk)
     }
 
 def _build_query_route_payload(state: RAGState) -> dict:
@@ -49,6 +50,23 @@ def _build_query_route_payload(state: RAGState) -> dict:
         "rewritten_query": state.get("rewritten_query"),
         "multi_queries": state.get("multi_queries", []),
         "hyde_answer": state.get("hyde_answer"),
+    }
+
+def _build_retrieval_meta(chunk: RetrievedChunk) -> dict:
+    """混合检索调试元数据"""
+    return {
+        "sources": list(chunk.sources),
+        "vector_rank": chunk.vector_rank,
+        "vector_score": (
+            round(chunk.vector_score, 4) if chunk.vector_score is not None else None
+        ),
+        "keyword_rank": chunk.keyword_rank,
+        "keyword_score": (
+            round(chunk.keyword_score, 4) if chunk.keyword_score is not None else None
+        ),
+        "rrf_score": (
+            round(chunk.rrf_score, 6) if chunk.rrf_score is not None else None
+        ),
     }
 
 
@@ -123,7 +141,7 @@ class ChatService:
                     "data": _build_query_route_payload(state),
                 }
                 # 4.retrieve（含拒答判定） -> 先把引用发给前端，让参考资料面板立刻可见
-                state.update(await retrieve(state, session))
+                state.update(await retrieve(state))
 
                 citations_payload = [
                     _serialize_citation(c, ordinal=i)
@@ -217,6 +235,7 @@ class ChatService:
                     document_name=chunk.document_name,
                     page_no=chunk.page_no,
                     quote=chunk.content,
+                    retrieval_meta=_build_retrieval_meta(chunk),
                 )
                 for ordinal, chunk in enumerate(
                     state.get("retrieved_chunks", []), start=1

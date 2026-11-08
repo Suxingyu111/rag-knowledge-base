@@ -24,7 +24,7 @@ export default function MarkdownComponents({ children, links, rehypePlugins }: M
       remarkPlugins={[remarkGfm]}
       rehypePlugins={rehypePlugins}
       components={{
-        a: links,
+        ...(links ? { a: links } : {}),
         table: ({ node: _node, ...props }) => (
           <div style={{ overflowX: 'auto' }}>
             <table {...props} style={{ borderCollapse: 'collapse', minWidth: '100%' }} />

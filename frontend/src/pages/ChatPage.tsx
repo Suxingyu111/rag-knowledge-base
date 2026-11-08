@@ -5,7 +5,7 @@ import { useEffect, useRef, type ReactNode } from 'react'
 import { useOutletContext, useSearchParams } from 'react-router-dom'
 
 import { api } from '@/api/client'
-import type { ConversationDetail, MessageRead } from '@/client/types.gen'
+import type { ConversationDetail, MessageRead, QueryRouteRead } from '@/client/types.gen'
 import CitationList from '@/components/CitationList'
 import { useChatStore, useConversationIndex } from '@/stores/chatStore'
 
@@ -45,6 +45,38 @@ function MessageBubble({ role, children }: { role: MessageRead['role']; children
         {children}
       </div>
     </article>
+  )
+}
+
+const queryRouteLabels = {
+  original: '原问题检索',
+  rewrite: '改写问题',
+  hyde: '假设性答案检索',
+  multi_query: '多子查询检索',
+} satisfies Record<QueryRouteRead['route'], string>
+
+function QueryRouteDetails({ result }: { result?: QueryRouteRead | null }) {
+  if (!result || !Object.hasOwn(queryRouteLabels, result.route)) return null
+
+  const { route, query, rewritten_query, hyde_answer, multi_queries } = result
+  const retrievalText = route === 'rewrite' ? rewritten_query || query
+    : route === 'hyde' ? hyde_answer || query
+      : query
+
+  return (
+    <details className="kb-chat-query-route">
+      <summary>检索策略 · {queryRouteLabels[route]}</summary>
+      {route === 'multi_query' && multi_queries?.length ? (
+        <ol>
+          {multi_queries.map((item, index) => <li key={index}>{item}</li>)}
+        </ol>
+      ) : (
+        <p>
+          {route === 'hyde' && <><strong>用于检索的假设文本</strong><br /></>}
+          {retrievalText}
+        </p>
+      )}
+    </details>
   )
 }
 
@@ -128,7 +160,12 @@ export function ChatPage() {
           {saved.map((item) => (
             <MessageBubble key={item.id} role={item.role}>
               {item.role === 'assistant'
-                ? <CitationList answer={item.content} citations={item.citations ?? []} />
+                ? (
+                  <>
+                    <QueryRouteDetails result={item.query_route} />
+                    <CitationList answer={item.content} citations={item.citations ?? []} />
+                  </>
+                )
                 : <div style={{ whiteSpace: 'pre-wrap' }}>{item.content}</div>}
             </MessageBubble>
           ))}
@@ -139,9 +176,12 @@ export function ChatPage() {
                   <div style={{ whiteSpace: 'pre-wrap' }}>{turn.question}</div>
                 </MessageBubble>
               )}
-              {(!turn.answerId || !savedIds.has(turn.answerId)) && (turn.answer || turn.pending) && (
+              {(!turn.answerId || !savedIds.has(turn.answerId)) && (turn.answer || turn.pending || turn.queryRoute) && (
                 <MessageBubble role="assistant">
-                  {turn.answer ? <CitationList answer={turn.answer} citations={turn.citations ?? []} /> : <p role="status">正在检索并生成回答…</p>}
+                  <QueryRouteDetails result={turn.queryRoute} />
+                  {turn.answer
+                    ? <CitationList answer={turn.answer} citations={turn.citations ?? []} />
+                    : turn.pending && <p role="status">正在检索并生成回答…</p>}
                 </MessageBubble>
               )}
               {turn.error && (

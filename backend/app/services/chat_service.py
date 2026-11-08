@@ -14,6 +14,7 @@ from app.workflows.nodes import (
     load_context,
     normalize_query,
     retrieve,
+    route_query,
     stream_generate,
 )
 from app.workflows.rag_state import RAGState
@@ -36,6 +37,18 @@ def _serialize_citation(chunk: RetrievedChunk, ordinal: int) -> dict:
         "section_path": chunk.section_path,
         "score": round(chunk.score, 4),
         "quote": chunk.content,
+    }
+
+def _build_query_route_payload(state: RAGState) -> dict:
+    """
+    route_query SSE 事件载荷格式（与前端约定一致）
+    """
+    return {
+        "route": state.get("route", "original"),
+        "query": state.get("query", ""),
+        "rewritten_query": state.get("rewritten_query"),
+        "multi_queries": state.get("multi_queries", []),
+        "hyde_answer": state.get("hyde_answer"),
     }
 
 
@@ -92,9 +105,9 @@ class ChatService:
                     "conversation_id": conversation_id,
                     "question": question,
                 }
-                # 1.加载上下文（仅历史消息，本轮 user 此刻尚未入库） + 改写查询
+                # 1.加载上下文（仅历史消息，本轮 user 此刻尚未入库） + 改写查询 + 路由
                 state.update(await load_context(state, session))
-                state.update(await normalize_query(state))
+                state.update(await route_query(state))
 
                 # 2.user 消息落库
                 await self._persist_user_message(state, session)
@@ -104,7 +117,12 @@ class ChatService:
                     "data": {"user_message_id": str(state["user_message_id"])},
                 }
 
-                # 3.retrieve(含拒答判定) -> 先把引用发给前端，让参考资料面板立刻可见
+                # 3.把 query 路由结果推给前端调试面板（始终发送，前端按 route 选择渲染）
+                yield {
+                    "event": "query_route",
+                    "data": _build_query_route_payload(state),
+                }
+                # 4.retrieve（含拒答判定） -> 先把引用发给前端，让参考资料面板立刻可见
                 state.update(await retrieve(state, session))
 
                 citations_payload = [
@@ -116,7 +134,7 @@ class ChatService:
                     "data": {"citations": citations_payload},
                 }
 
-                # 4.生成：拒答直接走拒答文案；否则逐 token 流式
+                # 5.生成：拒答直接走拒答文案；否则逐 token 流式
                 if state.get("refused"):
                     yield {
                         "event": "token",
@@ -182,7 +200,10 @@ class ChatService:
         assistant_msg = ConversationRepository.make_assistant_message(
             state["conversation_id"],
             content=state["answer"],
-            extra_metadata={"refused": bool(state.get("refused"))},
+            extra_metadata={
+                "refused": bool(state.get("refused")),
+                "query_route": _build_query_route_payload(state),
+            },
         )
         await conv_repo.add_messages([assistant_msg])
 

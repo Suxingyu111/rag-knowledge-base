@@ -3,11 +3,12 @@ import { persist } from 'zustand/middleware'
 
 import { api } from '@/api/client'
 import { streamChat, type ChatStreamCitation } from '@/api/chatStream'
-import type { ConversationRead } from '@/client/types.gen'
+import type { ConversationRead, QueryRouteRead } from '@/client/types.gen'
 
 interface ChatTurn {
   question: string
   answer: string
+  queryRoute?: QueryRouteRead
   citations?: ChatStreamCitation[]
   userId?: string
   answerId?: string
@@ -77,6 +78,11 @@ export const useChatStore = create<ChatState>()((set, get) => ({
             case 'start':
               update({ userId: event.user_message_id })
               break
+            case 'query_route': {
+              const { route, query, rewritten_query, hyde_answer, multi_queries } = event
+              update({ queryRoute: { route, query, rewritten_query, hyde_answer, multi_queries } })
+              break
+            }
             case 'citations':
               update({ citations: event.citations })
               break

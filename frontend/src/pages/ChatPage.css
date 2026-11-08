@@ -53,3 +53,19 @@
   color: var(--kb-muted);
   font-size: 12px;
 }
+
+.kb-chat-query-route {
+  margin-block: 6px;
+  color: var(--kb-muted);
+  font-size: 13px;
+}
+
+.kb-chat-query-route summary {
+  cursor: pointer;
+}
+
+.kb-chat-query-route p,
+.kb-chat-query-route ol {
+  margin-block: 6px 0;
+  white-space: pre-wrap;
+}

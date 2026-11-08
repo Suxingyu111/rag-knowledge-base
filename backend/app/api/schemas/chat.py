@@ -4,6 +4,15 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 MessageRoleValue = Literal["user", "assistant", "system"]
+QueryRouteValue = Literal["original", "rewrite", "hyde", "multi_query"]
+
+
+class QueryRouteRead(BaseModel):
+    route: QueryRouteValue
+    query: str
+    rewritten_query: str | None = None
+    hyde_answer: str | None = None
+    multi_queries: list[str] | None = None
 
 
 class ConversationCreate(BaseModel):
@@ -56,19 +65,20 @@ class MessageRead(BaseModel):
     content: str
     created_at: datetime
     citations: list[CitationRead] = Field(default_factory=list)
+    # assistant 消息的 query 路由调试信息；user / 旧消息为 None
+    query_route: QueryRouteRead | None = None
 
     @classmethod
     def from_orm(cls, message) -> "MessageRead":
-        sections = (message.extra_metadata or {}).get("citation_sections", {})
+        is_assistant = message.role == "assistant"
         return cls(
             id=message.id,
             role=message.role,
             content=message.content,
             created_at=message.created_at,
-            citations=[
-                CitationRead.from_orm(citation, sections.get(str(citation.ordinal)))
-                for citation in message.citations
-            ] if message.role == "assistant" else [],
+            citations=[CitationRead.from_orm(c) for c in message.citations
+            ] if is_assistant else [],
+            query_route=_parse_query_route(message.extra_metadata) if is_assistant else None,
         )
 
 
@@ -82,3 +92,14 @@ class ConversationDetail(BaseModel):
 class ChatRequest(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
 
+
+def _parse_query_route(extra_metadata: dict | None) -> QueryRouteRead | None:
+    if not extra_metadata:
+        return None
+    route = extra_metadata.get("query_route")
+    if not isinstance(route, dict):
+        return None
+    try:
+        return QueryRouteRead.model_validate(route)
+    except Exception:
+        return None

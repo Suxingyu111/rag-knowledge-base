@@ -81,6 +81,12 @@ class Settings(BaseSettings):
     # 多轮窗口: load_context 节点取最近多少轮塞进 prompt
     chat_history_window: int = 5
 
+    # ==== query 优化 ====
+    # 关掉后 route_query 节点强制走 original，方便对比有/无路由的效果
+    query_routing_enabled: bool = True
+    # Multi-Query 策略生成的子查询数量，过大会增加 embedding 成本
+    multi_query_count: int = 3
+
     @model_validator(mode="after")
     def _assemble_database_url(self) -> "Settings":
         """未配置 DATABASE_URL 时，根据 POSTGRES_* 组装异步连接串。"""

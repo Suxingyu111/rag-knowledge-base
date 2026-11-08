@@ -442,6 +442,33 @@ export type MessageRead = {
      * Citations
      */
     citations?: Array<CitationRead>;
+    query_route?: QueryRouteRead | null;
+};
+
+/**
+ * QueryRouteRead
+ */
+export type QueryRouteRead = {
+    /**
+     * Route
+     */
+    route: 'original' | 'rewrite' | 'hyde' | 'multi_query';
+    /**
+     * Query
+     */
+    query: string;
+    /**
+     * Rewritten Query
+     */
+    rewritten_query?: string | null;
+    /**
+     * Hyde Answer
+     */
+    hyde_answer?: string | null;
+    /**
+     * Multi Queries
+     */
+    multi_queries?: Array<string> | null;
 };
 
 /**

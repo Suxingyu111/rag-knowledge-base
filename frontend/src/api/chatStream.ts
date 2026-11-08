@@ -1,5 +1,5 @@
 import { EventStreamContentType, fetchEventSource } from '@microsoft/fetch-event-source'
-import type { CitationRead } from '@/client/types.gen'
+import type { CitationRead, QueryRouteRead } from '@/client/types.gen'
 import { API_BASE_URL, ApiError, resolveApiPath } from './client'
 
 export interface ChatStartEvent {
@@ -11,6 +11,8 @@ export interface ChatStreamCitation extends Omit<CitationRead, 'id'> {
     section_path: string | null
     score: number
 }
+
+export type ChatQueryRouteEvent = QueryRouteRead & { type: 'query_route' }
 
 export interface ChatCitationsEvent {
     type: 'citations'
@@ -33,6 +35,7 @@ export interface ChatErrorEvent {
 
 export type ChatStreamEvent =
     | ChatStartEvent
+    | ChatQueryRouteEvent
     | ChatCitationsEvent
     | ChatTokenEvent
     | ChatEndEvent
@@ -47,6 +50,7 @@ export interface StreamChatParams {
 
 const eventTypes = {
     message_start: 'start',
+    query_route: 'query_route',
     citations: 'citations',
     token: 'token',
     message_end: 'end',

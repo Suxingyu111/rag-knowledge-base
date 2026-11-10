@@ -5,6 +5,24 @@ from pydantic import BaseModel, ConfigDict, Field
 
 MessageRoleValue = Literal["user", "assistant", "system"]
 QueryRouteValue = Literal["original", "rewrite", "hyde", "multi_query"]
+AgentActionValue = Literal["initial", "proceed", "rewrite_query", "switch_route", "refuse"]
+
+
+class AgentStep(BaseModel):
+    """
+    Agentic RAG 单轮决策 + 观察快照。
+
+    plan_retrieval 先填决策字段（round / action / reason / route / query），
+    retrieve 盘完后 observe_context 回填观察字段（retrieve_count / top_score / sufficient）。
+    """
+    round: int
+    action: AgentActionValue
+    reason: str
+    route: QueryRouteValue
+    query: str
+    retrieved_count: int | None = None
+    top_score: float | None = None
+    sufficient: bool | None = None
 
 
 class QueryRouteRead(BaseModel):
@@ -88,6 +106,8 @@ class MessageRead(BaseModel):
     citations: list[CitationRead] = Field(default_factory=list)
     # assistant 消息的 query 路由调试信息；user / 旧消息为 None
     query_route: QueryRouteRead | None = None
+    # Agentic RAG 决策轨迹；user / 旧消息 / 关闭 agent loop 时为 None
+    agent_steps: list[AgentStep] | None = None
 
     @classmethod
     def from_orm(cls, message) -> "MessageRead":
@@ -100,6 +120,7 @@ class MessageRead(BaseModel):
             citations=[CitationRead.from_orm(c) for c in message.citations
             ] if is_assistant else [],
             query_route=_parse_query_route(message.extra_metadata) if is_assistant else None,
+            agent_steps=_parse_agent_steps(message.extra_metadata) if is_assistant else None,
         )
 
 
@@ -133,3 +154,20 @@ def _parse_retrieval_meta(raw: dict | None) -> RetrievalMeta | None:
         return RetrievalMeta.model_validate(raw)
     except Exception:
         return None
+
+def _parse_agent_steps(metadata: dict | None) -> list[AgentStep] | None:
+    """从 messages.extra_metadata 解析 agent_steps；缺失 / 非法静默返回 None。"""
+    if not metadata:
+        return None
+    raw = metadata.get("agent_steps")
+    if not isinstance(raw, list) or not raw:
+        return None
+    parsed: list[AgentStep] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            return None
+        try:
+            parsed.append(AgentStep.model_validate(item))
+        except Exception:
+            return None
+    return parsed

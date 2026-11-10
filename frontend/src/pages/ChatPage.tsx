@@ -6,6 +6,7 @@ import { useOutletContext, useSearchParams } from 'react-router-dom'
 
 import { api } from '@/api/client'
 import type { ConversationDetail, MessageRead, QueryRouteRead } from '@/client/types.gen'
+import AgentRetrievalDetails from '@/components/AgentRetrievalDetails'
 import CitationList from '@/components/CitationList'
 import { useChatStore, useConversationIndex } from '@/stores/chatStore'
 
@@ -162,6 +163,7 @@ export function ChatPage() {
               {item.role === 'assistant'
                 ? (
                   <>
+                    <AgentRetrievalDetails steps={item.agent_steps} />
                     <QueryRouteDetails result={item.query_route} />
                     <CitationList answer={item.content} citations={item.citations ?? []} />
                   </>
@@ -176,12 +178,19 @@ export function ChatPage() {
                   <div style={{ whiteSpace: 'pre-wrap' }}>{turn.question}</div>
                 </MessageBubble>
               )}
-              {(!turn.answerId || !savedIds.has(turn.answerId)) && (turn.answer || turn.pending || turn.queryRoute) && (
+              {(!turn.answerId || !savedIds.has(turn.answerId)) && (turn.answer || turn.pending || turn.queryRoute || !!turn.agentSteps?.length) && (
                 <MessageBubble role="assistant">
+                  <AgentRetrievalDetails steps={turn.agentSteps} />
                   <QueryRouteDetails result={turn.queryRoute} />
                   {turn.answer
                     ? <CitationList answer={turn.answer} citations={turn.citations ?? []} />
-                    : turn.pending && <p role="status">正在检索并生成回答…</p>}
+                    : null}
+                  {turn.pending && !turn.answerId && (
+                    <p role="status">{turn.phase === 'saving' ? '正在保存回答…'
+                      : turn.phase === 'streaming' ? '正在流式输出…'
+                      : turn.phase === 'generating' ? '正在准备回答…'
+                      : '正在规范化查询并检索知识库…'}</p>
+                  )}
                 </MessageBubble>
               )}
               {turn.error && (

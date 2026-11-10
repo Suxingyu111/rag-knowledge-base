@@ -64,7 +64,7 @@ async def stream_chat(
     """
     SSE 流式回答。
 
-    事件协议：message_start -> citations -> token...(多次) -> message_end;
+    事件协议：message_start → query_route → agent_steps → citations → token… → message_saving → message_end
     任何阶段出错改 yield error。前端用 @microsoft/fetch-event-source 接。
     """
     service = ChatService(session)

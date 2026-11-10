@@ -1,5 +1,5 @@
 import { EventStreamContentType, fetchEventSource } from '@microsoft/fetch-event-source'
-import type { CitationRead, QueryRouteRead } from '@/client/types.gen'
+import type { AgentStep, CitationRead, QueryRouteRead } from '@/client/types.gen'
 import { API_BASE_URL, ApiError, resolveApiPath } from './client'
 
 export interface ChatStartEvent {
@@ -36,6 +36,8 @@ export interface ChatErrorEvent {
 export type ChatStreamEvent =
     | ChatStartEvent
     | ChatQueryRouteEvent
+    | { type: 'agent_steps'; steps: AgentStep[] }
+    | { type: 'saving' }
     | ChatCitationsEvent
     | ChatTokenEvent
     | ChatEndEvent
@@ -51,6 +53,8 @@ export interface StreamChatParams {
 const eventTypes = {
     message_start: 'start',
     query_route: 'query_route',
+    agent_steps: 'agent_steps',
+    message_saving: 'saving',
     citations: 'citations',
     token: 'token',
     message_end: 'end',

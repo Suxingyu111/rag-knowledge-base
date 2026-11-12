@@ -7,7 +7,7 @@
 向量检索在这些场景下经常被同义近邻干扰。
 """
 
-
+from langsmith import traceable
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.repositories.chunk_repo import ChunkRepository
@@ -18,6 +18,7 @@ class KeywordRetriever:
     def __init__(self, session: AsyncSession) -> None:
         self.chunk_repo = ChunkRepository(session)
 
+    @traceable(name="KeywordRetriever.search", run_type="retriever")
     async def search(self, query: str, top_k: int) -> list[RetrievedChunk]:
         rows = await self.chunk_repo.keyword_search(query, top_k)
         return [

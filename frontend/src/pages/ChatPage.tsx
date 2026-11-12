@@ -1,6 +1,6 @@
 import { ArrowUpOutlined, DesktopOutlined, UserOutlined } from '@ant-design/icons'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Alert, Button, Input, Spin, Tag } from 'antd'
+import { Alert, Button, Input, Space, Spin, Tag, Typography } from 'antd'
 import { useEffect, useRef, type ReactNode } from 'react'
 import { useOutletContext, useSearchParams } from 'react-router-dom'
 
@@ -83,6 +83,41 @@ function VerificationDetails({ result }: { result?: VerifyResultRead | null }) {
         {result.verified ? '答案校验通过' : '答案校验未通过'}
       </Tag>
       {!result.verified && result.reason && <div>{result.reason}</div>}
+    </div>
+  )
+}
+
+function getTraceLink(traceUrl?: string | null) {
+  if (!traceUrl) return null
+  try {
+    const url = new URL(traceUrl)
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null
+  } catch {
+    return null
+  }
+}
+
+function AnswerTrace({ traceId, traceUrl }: {
+  traceId?: string | null
+  traceUrl?: string | null
+}) {
+  const href = getTraceLink(traceUrl)
+  if (!href && !traceId) return null
+
+  return (
+    <div className="kb-chat-check">
+      <Space wrap>
+        {traceId && (
+          <Typography.Text type="secondary" copyable={{ text: traceId, tooltips: ['复制追踪 ID', '已复制'] }}>
+            LangSmith 追踪 ID
+          </Typography.Text>
+        )}
+        {href && (
+          <Typography.Link href={href} target="_blank" rel="noopener noreferrer">
+            在LangSmith中查看
+          </Typography.Link>
+        )}
+      </Space>
     </div>
   )
 }
@@ -172,6 +207,7 @@ export function ChatPage() {
                     <ContextCheck sufficient={contextByAnswer.get(item.id)} />
                     <VerificationDetails result={item.verify_result} />
                     <CitationList answer={item.content} citations={item.citations ?? []} />
+                    <AnswerTrace traceId={item.trace_id} traceUrl={item.trace_url} />
                   </>
                 )
                 : <div style={{ whiteSpace: 'pre-wrap' }}>{item.content}</div>}
@@ -184,7 +220,7 @@ export function ChatPage() {
                   <div style={{ whiteSpace: 'pre-wrap' }}>{turn.question}</div>
                 </MessageBubble>
               )}
-              {(!turn.answerId || !savedIds.has(turn.answerId)) && (turn.answer || turn.pending || turn.queryRoute || !!turn.agentSteps?.length) && (
+              {(!turn.answerId || !savedIds.has(turn.answerId)) && (turn.answer || turn.pending || turn.queryRoute || !!turn.agentSteps?.length || turn.traceId || turn.traceUrl) && (
                 <MessageBubble role="assistant">
                   <AgentRetrievalDetails steps={turn.agentSteps} />
                   <QueryRouteDetails result={turn.queryRoute} />
@@ -200,6 +236,7 @@ export function ChatPage() {
                       : turn.phase === 'generating' ? '正在准备回答…'
                       : '正在规范化查询并检索知识库…'}</p>
                   )}
+                  <AnswerTrace traceId={turn.traceId} traceUrl={turn.traceUrl} />
                 </MessageBubble>
               )}
               {turn.error && (

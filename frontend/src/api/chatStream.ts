@@ -5,6 +5,8 @@ import { API_BASE_URL, ApiError, resolveApiPath } from './client'
 export interface ChatStartEvent {
     type: 'start'
     user_message_id: string
+    trace_id?: string | null
+    trace_url?: string | null
 }
 // 流式引用来自检索结果，持久化引用 ID 由历史接口提供。
 export interface ChatStreamCitation extends Omit<CitationRead, 'id'> {

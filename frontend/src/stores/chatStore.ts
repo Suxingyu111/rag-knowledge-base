@@ -15,6 +15,8 @@ interface ChatTurn {
   citations?: ChatStreamCitation[]
   userId?: string
   answerId?: string
+  traceId?: string | null
+  traceUrl?: string | null
   pending: boolean
   error?: string
 }
@@ -78,7 +80,12 @@ export const useChatStore = create<ChatState>()((set, get) => ({
         onEvent(event) {
           switch (event.type) {
             case 'start':
-              update({ userId: event.user_message_id, phase: 'generating' })
+              update({
+                userId: event.user_message_id,
+                phase: 'generating',
+                traceId: event.trace_id,
+                traceUrl: event.trace_url,
+              })
               break
             case 'query_route': {
               const { route, query, rewritten_query, hyde_answer, multi_queries } = event

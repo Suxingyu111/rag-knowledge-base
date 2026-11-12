@@ -14,11 +14,13 @@ from app.api.routes import documents, health, chat
 from app.core.config import settings
 from app.core.logging import configure_logging, get_logger
 from app.db.session import engine
+from app.core.observability import configure_observability
 
 API_PREFIX = "/api"
 APP_VERSION = "0.1.0"
 
 configure_logging()
+configure_observability()
 logger = get_logger(__name__)
 
 

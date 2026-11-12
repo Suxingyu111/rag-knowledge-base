@@ -141,7 +141,7 @@ export const getConversation = <ThrowOnError extends boolean = false>(options: O
  *
  * SSE 流式回答。
  *
- * 事件协议：message_start → query_route → agent_steps → citations → token… → message_saving → message_end
+ * 事件协议：message_start → query_route → agent_steps → [context_check] → [verify_start → verify_result] → citations → [token…] → message_saving → message_end
  * 任何阶段出错改 yield error。前端用 @microsoft/fetch-event-source 接。
  */
 export const streamChat = <ThrowOnError extends boolean = false>(options: Options<StreamChatData, ThrowOnError, unknown>): Promise<ServerSentEventsResult<StreamChatResponses>> => (options.client ?? client).sse.post<StreamChatResponses, StreamChatErrors, ThrowOnError>({

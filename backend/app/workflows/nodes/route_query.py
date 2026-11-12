@@ -8,7 +8,7 @@ async def route_query(state: RAGState) -> RAGState:
         return {"route": "original", "query": state["question"]}
 
     result = await get_query_rewriter().optimize(
-        question=state['question'],
+        question=state['query'],
         multi_query_count=settings.multi_query_count,
     )
     update: RAGState = {

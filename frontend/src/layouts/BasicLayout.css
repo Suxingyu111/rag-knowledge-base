@@ -1344,3 +1344,66 @@
     transform: translateY(0);
   }
 }
+
+.kb-content.kb-content--chat {
+  overflow: hidden;
+}
+
+.kb-content--chat .kb-stage-wrap {
+  height: 100%;
+  max-width: none;
+  padding: 0;
+  animation: none;
+}
+
+.kb-conversations {
+  margin: 0 12px 8px;
+  color: #e7ecdf;
+}
+
+.kb-conversations-title,
+.kb-conversation {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 8px;
+}
+
+.kb-conversations-title a,
+.kb-conversation a {
+  flex: 1;
+  min-width: 0;
+  color: inherit;
+  padding: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kb-conversations-title:hover,
+.kb-conversations-title.is-active,
+.kb-conversation:hover,
+.kb-conversation.is-active {
+  background: rgb(255 255 255 / 10%);
+}
+
+.kb-conversations .ant-btn.ant-btn-text {
+  color: inherit;
+}
+
+.kb-conversations .ant-btn:disabled {
+  opacity: 0.45;
+}
+
+.kb-conversations-list {
+  max-height: 36dvh;
+  overflow: auto;
+  padding: 4px 0 4px 16px;
+  font-size: 13px;
+  scrollbar-width: thin;
+}
+
+.kb-conversations-empty {
+  display: block;
+  padding: 8px;
+}

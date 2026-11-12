@@ -22,6 +22,9 @@ class RetrievedChunk:
     keyword_rank: int | None = None
     keyword_score: float | None = None
     rrf_score: float | None = None
+    # reranker query-chunk 成对打分的相关度，越大越相关
+    # qwen3.7-text-rerank 输出relevance_score E [0, 1]
+    rerank_score: float | None = None
 
 
 class VectorRetriever:

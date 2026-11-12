@@ -1,37 +1,18 @@
 import { ArrowUpOutlined, DesktopOutlined, UserOutlined } from '@ant-design/icons'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Alert, Button, Input, Select, Spin } from 'antd'
+import { Alert, Button, Input, Spin, Tag } from 'antd'
 import { useEffect, useRef, type ReactNode } from 'react'
 import { useOutletContext, useSearchParams } from 'react-router-dom'
 
 import { api } from '@/api/client'
-import type { ConversationDetail, MessageRead, QueryRouteRead } from '@/client/types.gen'
+import type { ConversationDetail, MessageRead, QueryRouteRead, VerifyResultRead } from '@/client/types.gen'
 import AgentRetrievalDetails from '@/components/AgentRetrievalDetails'
 import CitationList from '@/components/CitationList'
-import { useChatStore, useConversationIndex } from '@/stores/chatStore'
+import { useChatStore } from '@/stores/chatStore'
+import { conversationListKey, historyKey } from '@/api/chatQueries'
 
-import StageHead from '@/components/StageHead'
 import type { WorkspaceOutletContext } from '@/layouts/BasicLayout'
 import './ChatPage.css'
-
-const STAGE_COPY = {
-  eyebrow: '01 / KNOWLEDGE CHAT',
-  headline: (
-    <>
-      今天想从文档里，
-      <br />
-      <em>找到什么？</em>
-    </>
-  ),
-  description:
-    '用日常语言提问，知源会检索你的知识库，并给出可以回溯到原文的回答。',
-} as const
-
-const SUGGESTED_QUESTIONS = [
-  '总结这份文档的核心结论',
-  '这份合同有哪些风险条款？',
-  '对比两个版本的差异',
-]
 
 function MessageBubble({ role, children }: { role: MessageRead['role']; children: ReactNode }) {
   const label = role === 'user' ? '你' : role === 'assistant' ? '知源' : '系统'
@@ -81,17 +62,41 @@ function QueryRouteDetails({ result }: { result?: QueryRouteRead | null }) {
   )
 }
 
-const historyKey = (id: string) => ['chat', 'history', id] as const
+function ContextCheck({ sufficient }: { sufficient?: boolean }) {
+  if (sufficient == null) return null
+
+  return (
+    <div className="kb-chat-check" role="status">
+      <Tag color={sufficient ? 'success' : 'warning'}>
+        {sufficient ? '召回证据充足' : '召回证据不足'}
+      </Tag>
+    </div>
+  )
+}
+
+function VerificationDetails({ result }: { result?: VerifyResultRead | null }) {
+  if (!result) return null
+
+  return (
+    <div className="kb-chat-check" role="status">
+      <Tag color={result.verified ? 'success' : 'warning'}>
+        {result.verified ? '答案校验通过' : '答案校验未通过'}
+      </Tag>
+      {!result.verified && result.reason && <div>{result.reason}</div>}
+    </div>
+  )
+}
 
 export function ChatPage() {
   const { question, setQuestion } = useOutletContext<WorkspaceOutletContext>()
   const [searchParams, setSearchParams] = useSearchParams()
   const conversationId = searchParams.get('conversation') ?? ''
-  const conversations = useConversationIndex((state) => state.conversations)
+  const deleting = useChatStore((state) => Boolean(conversationId && state.deletingId === conversationId))
   const turns = useChatStore((state) => state.turns[conversationId])
   const pending = turns?.some((turn) => turn.pending) ?? false
   const creating = useChatStore((state) => state.creating)
   const messages = useRef<HTMLDivElement>(null)
+  const followLatest = useRef(true)
   const queryClient = useQueryClient()
   const history = useQuery({
     queryKey: historyKey(conversationId),
@@ -103,19 +108,20 @@ export function ChatPage() {
   })
   const saved = history.data?.messages ?? []
   const savedIds = new Set(saved.map(({ id }) => id))
+  const contextByAnswer = new Map(turns?.map(({ answerId, contextSufficient }) => [answerId, contextSufficient]))
 
   useEffect(() => {
-    if (history.data) useConversationIndex.getState().remember(history.data.conversation)
-  }, [history.data])
+    followLatest.current = true
+  }, [conversationId])
 
   useEffect(() => {
     const panel = messages.current
-    if (panel) panel.scrollTop = panel.scrollHeight
+    if (panel && followLatest.current) panel.scrollTop = panel.scrollHeight
   }, [conversationId, history.data, turns])
 
   const handleAsk = async () => {
     const text = question.trim()
-    if (!text || creating || pending || (conversationId && !history.data)) return
+    if (!text || creating || pending || deleting || (conversationId && !history.data)) return
 
     let id = conversationId
     if (!id) {
@@ -125,34 +131,32 @@ export function ChatPage() {
         id = conversation.id
         queryClient.setQueryData<ConversationDetail>(historyKey(id), { conversation, messages: [] })
         setSearchParams({ conversation: id })
+        void queryClient.invalidateQueries({ queryKey: conversationListKey })
       } catch {
         return
       }
     }
     setQuestion('')
+    followLatest.current = true
     await useChatStore.getState().send(id, text)
-    await queryClient.invalidateQueries({ queryKey: historyKey(id) })
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: historyKey(id) }),
+      queryClient.invalidateQueries({ queryKey: conversationListKey }),
+    ])
   }
 
   return (
-    <section className="kb-stage" aria-labelledby="kb-page-title">
-      <StageHead {...STAGE_COPY} />
-
-      <Select
-        aria-label="历史会话"
-        placeholder="打开历史会话"
-        value={conversationId || undefined}
-        disabled={creating}
-        style={{ width: '100%', maxWidth: 360, marginBlockEnd: 16 }}
-        options={conversations.map(({ id, title }) => ({ value: id, label: title }))}
-        onChange={(id: string) => {
-          setQuestion('')
-          setSearchParams({ conversation: id })
+    <section className="kb-chat-page" aria-label={history.data?.conversation.title ?? '知识问答'}>
+      <div
+        ref={messages}
+        aria-label="会话消息"
+        className="kb-chat-transcript"
+        onScroll={(event) => {
+          const panel = event.currentTarget
+          followLatest.current = panel.scrollHeight - panel.scrollTop - panel.clientHeight < 48
         }}
-      />
-
-      {conversationId && (
-        <div ref={messages} aria-label="会话消息" className="kb-chat-transcript">
+      >
+        {conversationId && <>
           {history.isPending && <Spin />}
           {history.isError && (
             <Alert type="error" title="会话历史加载失败" description={history.error.message}
@@ -165,6 +169,8 @@ export function ChatPage() {
                   <>
                     <AgentRetrievalDetails steps={item.agent_steps} />
                     <QueryRouteDetails result={item.query_route} />
+                    <ContextCheck sufficient={contextByAnswer.get(item.id)} />
+                    <VerificationDetails result={item.verify_result} />
                     <CitationList answer={item.content} citations={item.citations ?? []} />
                   </>
                 )
@@ -182,11 +188,14 @@ export function ChatPage() {
                 <MessageBubble role="assistant">
                   <AgentRetrievalDetails steps={turn.agentSteps} />
                   <QueryRouteDetails result={turn.queryRoute} />
+                  <ContextCheck sufficient={turn.contextSufficient} />
+                  <VerificationDetails result={turn.verifyResult} />
                   {turn.answer
                     ? <CitationList answer={turn.answer} citations={turn.citations ?? []} />
                     : null}
                   {turn.pending && !turn.answerId && (
                     <p role="status">{turn.phase === 'saving' ? '正在保存回答…'
+                      : turn.phase === 'verifying' ? '正在校验答案…'
                       : turn.phase === 'streaming' ? '正在流式输出…'
                       : turn.phase === 'generating' ? '正在准备回答…'
                       : '正在规范化查询并检索知识库…'}</p>
@@ -200,19 +209,15 @@ export function ChatPage() {
               )}
             </div>
           ))}
-        </div>
-      )}
+        </>}
+      </div>
 
       <div className="kb-composer-shell">
-        <div className="kb-composer-head">
-          <span className="kb-composer-label">向知识库提问</span>
-          {pending && <span role="status">正在回答</span>}
-        </div>
         <Input.TextArea
           aria-label="向知识库提问"
-          autoSize={{ minRows: 3, maxRows: 6 }}
+          autoSize={{ minRows: 2, maxRows: 6 }}
           className="kb-question-input"
-          disabled={creating}
+          disabled={creating || deleting}
           maxLength={2000}
           onChange={(event) => setQuestion(event.target.value)}
           onPressEnter={(event) => {
@@ -221,7 +226,7 @@ export function ChatPage() {
               void handleAsk()
             }
           }}
-          placeholder="例如：这份合同的付款周期是多久？"
+          placeholder="向知识库提问"
           value={question}
           variant="borderless"
         />
@@ -229,7 +234,7 @@ export function ChatPage() {
           <span>Enter 发送 · Shift + Enter 换行</span>
           <Button
             className="kb-send-button"
-            disabled={!question.trim() || pending || Boolean(conversationId && !history.data)}
+            disabled={!question.trim() || pending || deleting || Boolean(conversationId && !history.data)}
             loading={creating}
             onClick={handleAsk}
             type="primary"
@@ -240,26 +245,6 @@ export function ChatPage() {
         </div>
       </div>
 
-      <div className="kb-suggest-row">
-        <span className="kb-suggest-label">不知道从哪问起？</span>
-        <div className="kb-chip-row">
-          {SUGGESTED_QUESTIONS.map((suggestion) => (
-            <button
-              className="kb-chip"
-              key={suggestion}
-              onClick={() => setQuestion(suggestion)}
-              type="button"
-            >
-              {suggestion}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <footer className="kb-stage-note">
-        <span className="kb-note-mark">RAG</span>
-        <span>回答会附上文档引用，重要结论请回到原文核对。</span>
-      </footer>
     </section>
   )
 }

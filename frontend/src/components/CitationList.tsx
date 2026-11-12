@@ -85,6 +85,7 @@ export default function CitationList({ answer, citations }: CitationListProps) {
             const id = `${panelId}-${citation.ordinal}`
             const expanded = activeOrdinal === citation.ordinal
             const sources = citation.retrieval_meta?.sources ?? []
+            const rerankScore = citation.retrieval_meta?.rerank_score
             const vector = sources.includes('vector')
             const keyword = sources.includes('keyword')
             const retrievalLabel = vector && keyword ? '混合' : vector ? '向量' : keyword ? '关键字' : ''
@@ -106,6 +107,7 @@ export default function CitationList({ answer, citations }: CitationListProps) {
                   [{citation.ordinal}] {citation.document_name}
                 </Button>
                 {retrievalLabel && <Tag>{retrievalLabel}</Tag>}
+                <Tag>重排分数 {rerankScore?.toFixed(4) ?? "暂无分数"}</Tag>
                 <section
                   aria-label={`引用 ${citation.ordinal} 原文`}
                   hidden={!expanded}

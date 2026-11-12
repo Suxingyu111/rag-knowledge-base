@@ -11,11 +11,14 @@ import {
   ReadOutlined,
 } from '@ant-design/icons'
 import { App as AntApp, Avatar, Button, Drawer, Layout, Menu } from 'antd'
+import { useQueryClient } from '@tanstack/react-query'
 import type { MenuProps } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 
+import { conversationListKey } from '@/api/chatQueries'
+import ConversationSidebar from '@/components/ConversationSidebar'
 import { useChatStore } from '@/stores/chatStore'
 import { ROUTE_PATHS } from '@/routes/paths'
 import type { RoutePath } from '@/routes/paths'
@@ -36,6 +39,7 @@ interface SidebarContentProps {
   activeKey: NavKey | null
   collapsed: boolean
   onClose?: () => void
+  onSelectConversation: () => void
   onNavigate: (key: NavKey) => void
 }
 
@@ -92,13 +96,13 @@ function toMenuItem({ key, label }: NavItem) {
   return { key, icon: NAV_ICONS[key], label }
 }
 
-const menuItems: MenuProps['items'] = [
+const menuItems = (collapsed: boolean): MenuProps['items'] => [
   {
     type: 'group',
     key: 'workspace',
     label: '工作台',
     children: NAV_ITEMS.filter((item) =>
-      WORKSPACE_NAV_KEYS.includes(item.key),
+      WORKSPACE_NAV_KEYS.includes(item.key) && (collapsed || item.key !== 'chat'),
     ).map(toMenuItem),
   },
   {
@@ -145,6 +149,7 @@ function SidebarContent({
   activeKey,
   collapsed,
   onClose,
+  onSelectConversation,
   onNavigate,
 }: SidebarContentProps) {
   return (
@@ -174,10 +179,11 @@ function SidebarContent({
       <div className="kb-sidebar-divider" />
 
       <div className="kb-nav-scroll">
+        {!collapsed && <ConversationSidebar onSelect={onSelectConversation} />}
         <Menu
           className="kb-nav"
           inlineCollapsed={collapsed}
-          items={menuItems}
+          items={menuItems(collapsed)}
           mode="inline"
           onClick={({ key }) => {
             const item = NAV_ITEMS.find((navItem) => navItem.key === key)
@@ -242,6 +248,7 @@ export default function BasicLayout() {
   const { message } = AntApp.useApp()
   const { pathname } = useLocation()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   const activeItem = resolveNavItem(pathname)
   const activeKey = activeItem?.key ?? null
@@ -279,12 +286,17 @@ export default function BasicLayout() {
     }
   }
 
+  const handleSelectConversation = () => {
+    setQuestion('')
+    setMobileNavOpen(false)
+  }
+
   const handleNewChat = async () => {
     try {
       const conversation = await useChatStore.getState().createConversation()
       if (!conversation) return
-      setQuestion('')
-      setMobileNavOpen(false)
+      handleSelectConversation()
+      void queryClient.invalidateQueries({ queryKey: conversationListKey })
       navigate(`${ROUTE_PATHS.chat}?conversation=${encodeURIComponent(conversation.id)}`)
     } catch {
       // 统一请求层负责显示创建失败提示。
@@ -313,6 +325,7 @@ export default function BasicLayout() {
             activeKey={activeKey}
             collapsed={collapsed}
             onNavigate={handleNavigate}
+            onSelectConversation={handleSelectConversation}
           />
         </Sider>
       ) : null}
@@ -358,11 +371,15 @@ export default function BasicLayout() {
           </div>
 
           <div className="kb-header-right">
-            <span className="kb-date">{TODAY_LABEL}</span>
-            <span className="kb-workspace-pill">
-              <span aria-hidden="true" className="kb-workspace-dot" />
-              本地工作区
-            </span>
+            {activeKey !== 'chat' && (
+              <>
+                <span className="kb-date">{TODAY_LABEL}</span>
+                <span className="kb-workspace-pill">
+                  <span aria-hidden="true" className="kb-workspace-dot" />
+                  本地工作区
+                </span>
+              </>
+            )}
             <Button
               className="kb-new-chat"
               icon={<PlusOutlined />}
@@ -375,7 +392,7 @@ export default function BasicLayout() {
           </div>
         </Header>
 
-        <Content className="kb-content" id="kb-main-content">
+        <Content className={activeKey === 'chat' ? 'kb-content kb-content--chat' : 'kb-content'} id="kb-main-content">
           <div className="kb-content-glow" aria-hidden="true" />
           <div className="kb-stage-wrap" key={pathname}>
             <Outlet context={outletContext} />
@@ -383,7 +400,7 @@ export default function BasicLayout() {
         </Content>
       </Layout>
 
-      <Drawer
+      {isMobile && <Drawer
         className="kb-drawer"
         closable={false}
         mask={{ blur: true }}
@@ -404,8 +421,9 @@ export default function BasicLayout() {
           collapsed={false}
           onClose={() => setMobileNavOpen(false)}
           onNavigate={handleNavigate}
+          onSelectConversation={handleSelectConversation}
         />
-      </Drawer>
+      </Drawer>}
     </Layout>
   )
 }

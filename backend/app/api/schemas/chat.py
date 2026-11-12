@@ -62,6 +62,7 @@ class RetrievalMeta(BaseModel):
     keyword_rank: int | None = None
     keyword_score: float | None = None
     rrf_score: float | None = None
+    rerank_score: float | None = None
 
 
 class CitationRead(BaseModel):
@@ -108,6 +109,8 @@ class MessageRead(BaseModel):
     query_route: QueryRouteRead | None = None
     # Agentic RAG 决策轨迹；user / 旧消息 / 关闭 agent loop 时为 None
     agent_steps: list[AgentStep] | None = None
+    # answer_verifier 校验结果；user / 旧消息 / 拒答路径为 None
+    verify_result: VerifyResultRead | None = None
 
     @classmethod
     def from_orm(cls, message) -> "MessageRead":
@@ -121,6 +124,7 @@ class MessageRead(BaseModel):
             ] if is_assistant else [],
             query_route=_parse_query_route(message.extra_metadata) if is_assistant else None,
             agent_steps=_parse_agent_steps(message.extra_metadata) if is_assistant else None,
+            verify_result=_parse_verify_result(message.extra_metadata) if is_assistant else None,
         )
 
 
@@ -133,6 +137,35 @@ class ConversationDetail(BaseModel):
 
 class ChatRequest(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
+
+
+class ConversationListItem(BaseModel):
+    """会话列表元素：侧栏渲染用，比 ConversationRead 多带 message_count。"""
+
+    id: UUID
+    title: str
+    updated_at: datetime
+    message_count: int
+
+
+class ConversationPage(BaseModel):
+    """会话列表分页响应。统一 page/page_size 风格，与第 3 章文档列表一致。"""
+
+    items: list[ConversationListItem]
+    total: int
+    page: int
+    page_size: int
+
+
+class VerifyResultRead(BaseModel):
+    """answer_verifier 校验结果，落库到 messages.extra_metadata.verify_result。
+
+    - verified=True: 答案被引用片段支撑；reason 通常为空
+    - verified=False: 触发拒答替换（service 层覆盖 answer/refused），reason 写入失败原因
+    """
+
+    verified: bool
+    reason: str | None = None
 
 
 def _parse_query_route(extra_metadata: dict | None) -> QueryRouteRead | None:
@@ -171,3 +204,15 @@ def _parse_agent_steps(metadata: dict | None) -> list[AgentStep] | None:
         except Exception:
             return None
     return parsed
+
+def _parse_verify_result(metadata: dict | None) -> VerifyResultRead | None:
+    """从 messages.extra_metadata 中提取 verify_result 字段。历史消息没有。"""
+    if not metadata:
+        return None
+    raw = metadata.get("verify_result")
+    if not isinstance(raw, dict):
+        return None
+    try:
+        return VerifyResultRead.model_validate(raw)
+    except Exception:
+        return None

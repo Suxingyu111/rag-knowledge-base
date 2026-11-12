@@ -1,5 +1,5 @@
 import { EventStreamContentType, fetchEventSource } from '@microsoft/fetch-event-source'
-import type { AgentStep, CitationRead, QueryRouteRead } from '@/client/types.gen'
+import type { AgentStep, CitationRead, QueryRouteRead, VerifyResultRead } from '@/client/types.gen'
 import { API_BASE_URL, ApiError, resolveApiPath } from './client'
 
 export interface ChatStartEvent {
@@ -13,6 +13,11 @@ export interface ChatStreamCitation extends Omit<CitationRead, 'id'> {
 }
 
 export type ChatQueryRouteEvent = QueryRouteRead & { type: 'query_route' }
+
+export type ChatVerifyEvent = VerifyResultRead & {
+    type: 'verify_result'
+    replacement_answer?: string
+}
 
 export interface ChatCitationsEvent {
     type: 'citations'
@@ -37,8 +42,11 @@ export type ChatStreamEvent =
     | ChatStartEvent
     | ChatQueryRouteEvent
     | { type: 'agent_steps'; steps: AgentStep[] }
+    | { type: 'context_check'; sufficient: boolean }
+    | { type: 'verifying' }
     | { type: 'saving' }
     | ChatCitationsEvent
+    | ChatVerifyEvent
     | ChatTokenEvent
     | ChatEndEvent
     | ChatErrorEvent
@@ -54,9 +62,12 @@ const eventTypes = {
     message_start: 'start',
     query_route: 'query_route',
     agent_steps: 'agent_steps',
+    context_check: 'context_check',
     message_saving: 'saving',
     citations: 'citations',
     token: 'token',
+    verify_start: 'verifying',
+    verify_result: 'verify_result',
     message_end: 'end',
     error: 'error',
 } as const

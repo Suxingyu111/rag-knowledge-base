@@ -1,7 +1,7 @@
 from collections.abc import AsyncIterable
 from uuid import UUID
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query, Response
 from fastapi.responses import EventSourceResponse
 from fastapi.sse import ServerSentEvent
 
@@ -12,6 +12,8 @@ from app.api.schemas.chat import (
     ConversationDetail,
     ConversationRead,
     MessageRead,
+    ConversationListItem,
+    ConversationPage,
 )
 from app.services.chat_service import ChatService
 
@@ -64,7 +66,7 @@ async def stream_chat(
     """
     SSE 流式回答。
 
-    事件协议：message_start → query_route → agent_steps → citations → token… → message_saving → message_end
+    事件协议：message_start → query_route → agent_steps → [context_check] → [verify_start → verify_result] → citations → [token…] → message_saving → message_end
     任何阶段出错改 yield error。前端用 @microsoft/fetch-event-source 接。
     """
     service = ChatService(session)
@@ -74,4 +76,46 @@ async def stream_chat(
             event=sse_event["event"],
         )
 
+
+@router.get(
+    "",
+    response_model=ConversationPage,
+    operation_id="listConversations",
+    summary="按更新时间倒序分页列出所有会话",
+)
+async def list_conversations(
+    session: DbSession,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+) -> ConversationPage:
+    service = ChatService(session)
+    items, total = await service.list_conversations(page=page, page_size=page_size)
+    return ConversationPage(
+        items=[
+            ConversationListItem(
+                id=conv.id,
+                title=conv.title,
+                updated_at=conv.updated_at,
+                message_count=count,
+            )
+            for conv, count in items
+        ],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.delete(
+    "/{conversation_id}",
+    status_code=204,
+    operation_id="deleteConversation",
+)
+async def delete_conversation(
+    conversation_id: UUID,
+    session: DbSession,
+) -> Response:
+    service = ChatService(session)
+    await service.delete_conversation(conversation_id)
+    return Response(status_code=204)
 

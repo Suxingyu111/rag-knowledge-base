@@ -1,8 +1,32 @@
+.kb-chat-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
 .kb-chat-transcript {
-  max-height: 55vh;
+  flex: 1;
+  min-height: 0;
   overflow: auto;
-  margin-block-end: 16px;
-  padding: 4px;
+  overscroll-behavior: contain;
+  padding: clamp(12px, 2.5vw, 32px);
+}
+
+.kb-chat-page .kb-composer-shell {
+  flex: 0 0 auto;
+  width: auto;
+  max-width: none;
+  margin: 0 clamp(12px, 2.5vw, 32px) clamp(12px, 2.5vw, 24px);
+}
+
+.kb-chat-page .kb-question-input.ant-input {
+  min-height: 0;
+  max-height: 30dvh;
+}
+
+.kb-chat-check {
+  margin-block: 6px;
+  font-size: 13px;
 }
 
 .kb-chat-message {

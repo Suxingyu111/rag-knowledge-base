@@ -611,6 +611,11 @@
   animation: kb-rise 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+.kb-stage-wrap.kb-stage-wrap--evaluations {
+  max-width: none;
+  padding: clamp(20px, 2.5vw, 36px) clamp(12px, 2vw, 32px) 36px;
+}
+
 .kb-stage {
   width: 100%;
 }

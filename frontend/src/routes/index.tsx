@@ -6,6 +6,8 @@ import ChatPage from '@/pages/ChatPage'
 import DocumentsPage from '@/pages/DocumentsPage'
 import DocumentDetailPage from '@/pages/DocumentDetailPage'
 import DocumentPreviewPage from '@/pages/DocumentPreviewPage'
+import EvaluationsPage from '@/pages/EvaluationsPage'
+import EvaluationDetailPage from '@/pages/EvaluationDetailPage'
 import HomePage from '@/pages/HomePages'
 import KnowledgeBasePage from '@/pages/KnowledgeBasePage'
 import NotFoundPage from '@/pages/NotFoundPage'
@@ -57,6 +59,14 @@ export const router = createBrowserRouter([
       {
         path: 'knowledge-base',
         element: <KnowledgeBasePage />,
+      },
+      {
+        path: ROUTE_PATHS.evaluations,
+        element: <EvaluationsPage />,
+      },
+      {
+        path: ROUTE_PATHS.evaluationDetail,
+        element: <EvaluationDetailPage />,
       },
       {
         path: 'health',

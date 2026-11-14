@@ -19,6 +19,8 @@ export const ROUTE_PATHS = {
   knowledgeBase: '/knowledge-base',
   /** 后端服务、数据库与 COS 的运行状态。 */
   health: '/health',
+  evaluations: '/evaluations',
+  evaluationDetail: '/evaluations/:runId',
 } as const
 
 /** 所有已声明路径组成的联合类型。 */

@@ -1,0 +1,244 @@
+/* 与工作台共用暖色背景，评测内容以表格和等宽数字为主。 */
+.evaluation-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  min-width: 0;
+}
+
+.evaluation-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: end;
+  gap: 16px;
+}
+
+.evaluation-header > div:first-child {
+  min-width: 0;
+}
+
+.evaluation-header h1 {
+  margin: 0;
+  color: var(--kb-text);
+  font-family: var(--kb-display);
+  font-size: clamp(30px, 4vw, 48px);
+  line-height: 1.15;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.evaluation-header p {
+  margin: 8px 0 0;
+  color: var(--kb-muted);
+}
+
+.evaluation-back {
+  justify-self: start;
+}
+
+.evaluation-page > .ant-card {
+  min-width: 0;
+}
+
+.evaluation-table > .ant-card-body {
+  padding: 0;
+}
+
+.evaluation-table .ant-table-pagination {
+  padding-inline: 12px;
+}
+
+.evaluation-table .ant-table-thead .ant-table-cell {
+  white-space: nowrap;
+}
+
+.evaluation-table .ant-table-thead > tr:first-child > th[colspan] {
+  background: var(--kb-paper-soft);
+}
+
+.evaluation-number {
+  font-variant-numeric: tabular-nums;
+}
+
+.evaluation-table td {
+  vertical-align: middle;
+}
+
+.evaluation-table .ant-tag {
+  margin-inline-end: 0;
+}
+
+.evaluation-item-tags,
+.evaluation-note {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  margin-top: 4px;
+  color: var(--kb-muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.evaluation-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.evaluation-metric .ant-card-body {
+  padding: 13px 14px;
+}
+
+.evaluation-metric-label,
+.evaluation-muted {
+  font-size: 12px;
+  color: var(--kb-muted, #6d655a);
+}
+
+.evaluation-metric-value {
+  margin-top: 5px;
+  color: var(--kb-text);
+  font-size: clamp(19px, 2.5vw, 28px);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.evaluation-run-meta > .ant-card-body,
+.evaluation-run-meta dl,
+.evaluation-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 22px;
+}
+
+.evaluation-run-meta > .ant-card-body {
+  justify-content: space-between;
+}
+
+.evaluation-run-meta dl,
+.evaluation-run-meta dd {
+  margin: 0;
+}
+
+.evaluation-run-meta dt {
+  color: var(--kb-muted);
+  font-size: 12px;
+}
+
+.evaluation-progress {
+  display: grid;
+  gap: 3px;
+  min-width: 112px;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--kb-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.evaluation-error-count {
+  color: #a52930;
+}
+
+.evaluation-progress .ant-progress {
+  line-height: 1;
+  margin: 0;
+}
+
+.evaluation-filters {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--kb-line);
+}
+
+.evaluation-filters label {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.evaluation-filters .ant-select {
+  width: min(220px, 100%);
+}
+
+.evaluation-name,
+.evaluation-question {
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+.evaluation-question {
+  display: block;
+  padding: 0;
+  border: 0;
+  color: var(--kb-accent-deep);
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  text-align: start;
+  cursor: pointer;
+}
+
+.evaluation-question:hover,
+.evaluation-question:focus-visible {
+  text-decoration: underline;
+}
+
+.evaluation-item-row {
+  cursor: pointer;
+}
+
+.evaluation-drawer {
+  display: grid;
+  gap: 18px;
+  overflow-wrap: anywhere;
+}
+
+.evaluation-drawer h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+.evaluation-answers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.evaluation-answers img {
+  max-width: 100%;
+}
+
+.evaluation-answers p:first-child {
+  margin-top: 0;
+}
+
+.evaluation-answers p:last-child {
+  margin-bottom: 0;
+}
+
+.evaluation-trace-id {
+  margin: 0;
+}
+
+.evaluation-evidence-text,
+.evaluation-json {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.evaluation-json {
+  max-height: 320px;
+  overflow: auto;
+}
+
+@media (max-width: 768px) {
+  .evaluation-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .evaluation-answers {
+    grid-template-columns: 1fr;
+  }
+}

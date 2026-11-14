@@ -1,5 +1,6 @@
 import {
   ApiOutlined,
+  BarChartOutlined,
   CloseOutlined,
   DatabaseOutlined,
   FileTextOutlined,
@@ -27,7 +28,7 @@ import './BasicLayout.css'
 
 const { Header, Sider, Content } = Layout
 
-type NavKey = 'chat' | 'knowledge-base' | 'documents' | 'health'
+type NavKey = 'chat' | 'knowledge-base' | 'documents' | 'evaluations' | 'health'
 
 interface NavItem {
   key: NavKey
@@ -77,6 +78,11 @@ const NAV_ITEMS: readonly NavItem[] = [
     label: '文档管理',
   },
   {
+    key: 'evaluations',
+    path: ROUTE_PATHS.evaluations,
+    label: '评测分析',
+  },
+  {
     key: 'health',
     path: ROUTE_PATHS.health,
     label: '系统状态',
@@ -87,10 +93,11 @@ const NAV_ICONS: Record<NavKey, ReactNode> = {
   chat: <MessageOutlined />,
   'knowledge-base': <DatabaseOutlined />,
   documents: <FileTextOutlined />,
+  evaluations: <BarChartOutlined />,
   health: <ApiOutlined />,
 }
 
-const WORKSPACE_NAV_KEYS: readonly NavKey[] = ['chat', 'knowledge-base']
+const WORKSPACE_NAV_KEYS: readonly NavKey[] = ['chat', 'knowledge-base', 'evaluations']
 
 function toMenuItem({ key, label }: NavItem) {
   return { key, icon: NAV_ICONS[key], label }
@@ -394,7 +401,7 @@ export default function BasicLayout() {
 
         <Content className={activeKey === 'chat' ? 'kb-content kb-content--chat' : 'kb-content'} id="kb-main-content">
           <div className="kb-content-glow" aria-hidden="true" />
-          <div className="kb-stage-wrap" key={pathname}>
+          <div className={activeKey === 'evaluations' ? 'kb-stage-wrap kb-stage-wrap--evaluations' : 'kb-stage-wrap'} key={pathname}>
             <Outlet context={outletContext} />
           </div>
         </Content>
